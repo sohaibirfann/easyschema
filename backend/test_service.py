@@ -4,6 +4,7 @@ import os
 os.environ["GROQ_API_KEY"] = "mock_key"
 
 from services.ai_service import generate_schema_from_ai
+from services.sql_generator import populate_sql_statements
 
 class MockResponse:
     def __init__(self, status_code, json_data):
@@ -49,6 +50,13 @@ async def test_generate():
         assert len(result.tables) == 1
         assert result.tables[0].table_name == "users"
         assert result.tables[0].columns[0].name == "id"
+        
+        populated = populate_sql_statements(result)
+        assert populated.tables[0].create_table_sql is not None
+        assert "CREATE TABLE users" in populated.tables[0].create_table_sql
+        assert "id INTEGER PRIMARY KEY" in populated.tables[0].create_table_sql
+        assert "name VARCHAR(255) NOT NULL" in populated.tables[0].create_table_sql
+        assert "INSERT INTO users" in populated.tables[0].inserts_sql
         print("Test passed successfully!")
 
 if __name__ == "__main__":
