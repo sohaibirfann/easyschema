@@ -29,7 +29,6 @@ interface HistoryEntry {
 
 const LS_KEY = "schemaai_history";
 
-// ponytail: static, belongs outside the component
 const SAMPLE_PROMPTS = [
   "E-commerce store with orders, items, inventory tracks and users.",
   "Blog site with users, posts, categories, comments and tags.",
@@ -116,24 +115,41 @@ function HistoryDrawer({ open, history, activeId, onLoad, onDelete, onClear, onC
   );
 }
 
-function SqlPanel({ label, sql, copyKey, copySuccess, onCopy, wrap }: {
+function SqlPanel({ label, sql, copyKey, copySuccess, onCopy, wrap, filename }: {
   label: string;
   sql: string;
   copyKey: string;
   copySuccess: string | null;
   onCopy: (key: string, text: string) => void;
   wrap?: boolean;
+  filename: string;
 }) {
+  function download() {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([sql], { type: "text/plain" }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   return (
     <div className="border border-[#e5e5e5] bg-white rounded-lg p-5 flex flex-col gap-4 shadow-sm">
       <div className="flex items-center justify-between border-b border-[#e5e5e5] pb-3">
         <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">{label}</span>
-        <button
-          onClick={() => onCopy(copyKey, sql)}
-          className="text-[11px] font-medium text-neutral-500 hover:text-black bg-white border border-[#e5e5e5] hover:bg-neutral-50 px-2.5 py-1 rounded-md transition-colors cursor-pointer"
-        >
-          {copySuccess === copyKey ? "Copied!" : `Copy ${copyKey === "schema" ? "DDL" : "Seed SQL"}`}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={download}
+            className="text-[11px] font-medium text-neutral-500 hover:text-black bg-white border border-[#e5e5e5] hover:bg-neutral-50 px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+          >
+            Download
+          </button>
+          <button
+            onClick={() => onCopy(copyKey, sql)}
+            className="text-[11px] font-medium text-neutral-500 hover:text-black bg-white border border-[#e5e5e5] hover:bg-neutral-50 px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+          >
+            {copySuccess === copyKey ? "Copied!" : `Copy ${copyKey === "schema" ? "DDL" : "Seed SQL"}`}
+          </button>
+        </div>
       </div>
       <pre className={`bg-[#fafbfb] border border-[#e5e5e5] rounded-md p-4 font-mono text-xs text-neutral-600 overflow-x-auto ${wrap ? "whitespace-pre-wrap leading-relaxed" : "whitespace-pre"}`}>
         {sql}
@@ -382,10 +398,10 @@ export default function GeneratorPage() {
                 </div>
 
                 {selectedTable.create_table_sql && (
-                  <SqlPanel label="Schema Query (DDL)" sql={selectedTable.create_table_sql} copyKey="schema" copySuccess={copySuccess} onCopy={handleCopy} />
+                  <SqlPanel label="Schema Query (DDL)" sql={selectedTable.create_table_sql} copyKey="schema" copySuccess={copySuccess} onCopy={handleCopy} filename={`${selectedTable.table_name}_schema.sql`} />
                 )}
                 {selectedTable.inserts_sql && (
-                  <SqlPanel label="Seed Rows (DML)" sql={selectedTable.inserts_sql} copyKey="inserts" copySuccess={copySuccess} onCopy={handleCopy} wrap />
+                  <SqlPanel label="Seed Rows (DML)" sql={selectedTable.inserts_sql} copyKey="inserts" copySuccess={copySuccess} onCopy={handleCopy} wrap filename={`${selectedTable.table_name}_seed.sql`} />
                 )}
               </div>
             )}
