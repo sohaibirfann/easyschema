@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { WakingUpNotice } from "@/components/WakingUpNotice";
 
 interface Column {
   name: string;
@@ -169,6 +170,7 @@ export default function GeneratorPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [slowWake, setSlowWake] = useState(false);
 
   useEffect(() => {
     setHistory(readHistory());
@@ -185,6 +187,8 @@ export default function GeneratorPage() {
     setResponse(null);
     setSelectedTableIndex(0);
     setActiveId(null);
+
+    const wakeTimer = setTimeout(() => setSlowWake(true), 4500);
 
     try {
       const res = await fetch("/api/generate", {
@@ -209,6 +213,8 @@ export default function GeneratorPage() {
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred. Please check your backend.");
     } finally {
+      clearTimeout(wakeTimer);
+      setSlowWake(false);
       setLoading(false);
     }
   }
@@ -293,6 +299,7 @@ export default function GeneratorPage() {
                 className="w-full h-24 bg-[#F4F5F6] border border-[#e5e5e5] focus:border-[#5E6AD2]/50 focus:ring-1 focus:ring-[#5E6AD2]/30 outline-none rounded-lg p-3.5 text-sm font-sans text-neutral-800 placeholder-neutral-400 transition-all resize-none"
                 disabled={loading}
               />
+              <WakingUpNotice />
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -320,6 +327,8 @@ export default function GeneratorPage() {
             </div>
           </form>
         </section>
+
+        {loading && slowWake && <WakingUpNotice active />}
 
         {error && (
           <div className="border border-red-200 bg-red-50 text-red-700 rounded-lg p-4 text-xs font-sans flex items-start gap-3">
