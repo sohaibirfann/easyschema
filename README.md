@@ -13,7 +13,9 @@
   [![Pydantic](https://img.shields.io/badge/Pydantic-2-E92063?style=flat-square)](https://docs.pydantic.dev)
   [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
-  [Overview](#overview) • [Architecture](#architecture) • [Getting started](#getting-started) • [Features](#features)
+  [**Live demo**](https://easyschema.vercel.app) • [Overview](#overview) • [Architecture](#architecture) • [Getting started](#getting-started) • [Features](#features)
+
+  > Hosted on free tiers — the backend spins down when idle, so the first request after a while may take up to ~30s to wake up.
 
 </div>
 
