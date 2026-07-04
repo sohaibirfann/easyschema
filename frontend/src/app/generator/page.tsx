@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { WakingUpNotice } from "@/components/WakingUpNotice";
 import { SchemaDiagram } from "@/components/SchemaDiagram";
-import type { SQLSchemaResponse } from "@/types/schema";
+import type { SQLSchemaResponse, Dialect } from "@/types/schema";
+import { DIALECTS } from "@/types/schema";
 
 interface HistoryEntry {
   id: number;
   prompt: string;
   response: SQLSchemaResponse;
+  dialect: Dialect;
 }
 
 const LS_KEY = "schemaai_history";
@@ -87,6 +89,12 @@ function HistoryDrawer({ open, history, activeId, onLoad, onDelete, onClear, onC
                       <span>{relativeTime(entry.id)}</span>
                       <span className="text-neutral-300">·</span>
                       <span>{entry.response.tables.length} table{entry.response.tables.length !== 1 ? "s" : ""}</span>
+                      {entry.dialect && (
+                        <>
+                          <span className="text-neutral-300">·</span>
+                          <span>{DIALECTS.find(d => d.value === entry.dialect)?.label ?? entry.dialect}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </li>
@@ -156,6 +164,7 @@ export default function GeneratorPage() {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [slowWake, setSlowWake] = useState(false);
   const [view, setView] = useState<"tables" | "diagram">("tables");
+  const [dialect, setDialect] = useState<Dialect>("postgres");
 
   useEffect(() => {
     setHistory(readHistory());
@@ -179,7 +188,7 @@ export default function GeneratorPage() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description }),
+        body: JSON.stringify({ description, dialect }),
       });
 
       if (!res.ok) {
@@ -190,7 +199,7 @@ export default function GeneratorPage() {
       const data: SQLSchemaResponse = await res.json();
       setResponse(data);
 
-      const entry: HistoryEntry = { id: Date.now(), prompt: description.trim(), response: data };
+      const entry: HistoryEntry = { id: Date.now(), prompt: description.trim(), response: data, dialect };
       const next = [entry, ...history].slice(0, 20);
       writeHistory(next);
       setHistory(next);
@@ -207,6 +216,7 @@ export default function GeneratorPage() {
   function loadEntry(entry: HistoryEntry) {
     setDescription(entry.prompt);
     setResponse(entry.response);
+    setDialect(entry.dialect ?? "postgres");
     setSelectedTableIndex(0);
     setError(null);
     setActiveId(entry.id);
@@ -302,13 +312,27 @@ export default function GeneratorPage() {
                 ))}
               </div>
 
-              <button
-                type="submit"
-                disabled={loading || !description.trim()}
-                className="w-full sm:w-auto px-5 py-2 text-sm font-semibold text-white bg-[#111111] hover:bg-[#222222] disabled:bg-neutral-200 disabled:text-neutral-400 transition-colors rounded-md tracking-tight cursor-pointer"
-              >
-                {loading ? "Compiling..." : "Generate SQL"}
-              </button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <select
+                  value={dialect}
+                  onChange={(e) => setDialect(e.target.value as Dialect)}
+                  disabled={loading}
+                  aria-label="SQL dialect"
+                  className="px-3 py-2 text-sm font-medium text-neutral-700 bg-white border border-[#e5e5e5] hover:bg-neutral-50 rounded-md transition-colors cursor-pointer outline-none focus:border-[#5E6AD2]/50 focus:ring-1 focus:ring-[#5E6AD2]/30 disabled:text-neutral-400"
+                >
+                  {DIALECTS.map((d) => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
+                </select>
+
+                <button
+                  type="submit"
+                  disabled={loading || !description.trim()}
+                  className="flex-1 sm:w-auto px-5 py-2 text-sm font-semibold text-white bg-[#111111] hover:bg-[#222222] disabled:bg-neutral-200 disabled:text-neutral-400 transition-colors rounded-md tracking-tight cursor-pointer"
+                >
+                  {loading ? "Compiling..." : "Generate SQL"}
+                </button>
+              </div>
             </div>
           </form>
         </section>

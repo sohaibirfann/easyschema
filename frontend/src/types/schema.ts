@@ -21,3 +21,11 @@ export interface TableSchema {
 export interface SQLSchemaResponse {
   tables: TableSchema[];
 }
+
+export type Dialect = "postgres" | "mysql" | "sqlite";
+
+export const DIALECTS: { value: Dialect; label: string }[] = [
+  { value: "postgres", label: "PostgreSQL" },
+  { value: "mysql", label: "MySQL" },
+  { value: "sqlite", label: "SQLite" },
+];

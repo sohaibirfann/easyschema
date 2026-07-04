@@ -21,6 +21,8 @@ async def generate_schema_from_ai(description: str) -> SQLSchemaResponse:
         "You must respond with a JSON object that strictly adheres to this JSON schema:\n"
         f"{json.dumps(SQLSchemaResponse.model_json_schema())}\n"
         "For any column that is a foreign key, set its `references` field to the referenced table and column name. "
+        "For an integer primary key that auto-increments (a surrogate id), set that column's `auto_increment` field to true. "
+        "Use standard, dialect-neutral SQL data types (e.g. INTEGER, VARCHAR(255), TEXT, BOOLEAN, TIMESTAMP). "
         "Do not include any explanation, markdown formatting, or text outside the JSON object."
     )
     

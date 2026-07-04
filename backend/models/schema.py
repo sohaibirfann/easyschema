@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import BaseModel, Field
 
 class Reference(BaseModel):
@@ -9,6 +10,7 @@ class Column(BaseModel):
     type: str = Field(description="SQL data type")
     constraints: list[str] = Field(default_factory=list, description="SQL constraints")
     references: Reference | None = Field(default=None, description="Foreign key reference, if this column is a foreign key")
+    auto_increment: bool = Field(default=False, description="True if this is an auto-incrementing integer primary key")
 
 class TableSchema(BaseModel):
     table_name: str = Field(description="Name of the table")
@@ -22,3 +24,4 @@ class SQLSchemaResponse(BaseModel):
 
 class GenerateRequest(BaseModel):
     description: str = Field(description="Natural language description of the requested database schema")
+    dialect: Literal["postgres", "mysql", "sqlite"] = Field(default="postgres", description="Target SQL dialect")

@@ -84,3 +84,18 @@ def test_populate_rejects_duplicate_column_names():
         assert False, "expected HTTPException"
     except HTTPException as e:
         assert e.status_code == 422
+
+def test_autoincrement_renders_per_dialect():
+    def schema():
+        return SQLSchemaResponse(tables=[TableSchema(table_name="users", columns=[
+            Column(name="id", type="INTEGER", constraints=["PRIMARY KEY"], auto_increment=True),
+        ])])
+
+    expected = {
+        "postgres": "id SERIAL PRIMARY KEY",
+        "mysql": "id INT AUTO_INCREMENT PRIMARY KEY",
+        "sqlite": "id INTEGER PRIMARY KEY AUTOINCREMENT",
+    }
+    for dialect, phrase in expected.items():
+        sql = populate_sql_statements(schema(), dialect).tables[0].create_table_sql
+        assert phrase in sql, f"{dialect}: expected {phrase!r} in {sql!r}"

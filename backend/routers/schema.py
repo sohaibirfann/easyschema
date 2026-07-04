@@ -32,4 +32,4 @@ async def health() -> dict[str, str]:
 @router.post("/generate")
 async def generate_schema(payload: GenerateRequest, _: RateLimitDep) -> SQLSchemaResponse:
     response = await generate_schema_from_ai(payload.description)
-    return populate_sql_statements(response)
+    return populate_sql_statements(response, payload.dialect)
