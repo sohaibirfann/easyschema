@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import httpx
@@ -7,6 +8,9 @@ from models.schema import SQLSchemaResponse
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+MAX_RETRIES = 2
 
 async def generate_schema_from_ai(description: str) -> SQLSchemaResponse:
     if not GROQ_API_KEY:
@@ -35,13 +39,17 @@ async def generate_schema_from_ai(description: str) -> SQLSchemaResponse:
     }
     
     async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            response = await client.post(GROQ_API_URL, json=payload, headers=headers)
-            response.raise_for_status()
-            result = response.json()
-            content = result["choices"][0]["message"]["content"]
-            return SQLSchemaResponse.model_validate_json(content)
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=response.status_code, detail=f"Groq API error: {e.response.text}")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to generate schema: {str(e)}")
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                response = await client.post(GROQ_API_URL, json=payload, headers=headers)
+                response.raise_for_status()
+                result = response.json()
+                content = result["choices"][0]["message"]["content"]
+                return SQLSchemaResponse.model_validate_json(content)
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code in RETRYABLE_STATUS_CODES and attempt < MAX_RETRIES:
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                raise HTTPException(status_code=e.response.status_code, detail=f"Groq API error: {e.response.text}")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to generate schema: {str(e)}")
