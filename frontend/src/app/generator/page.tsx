@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { WakingUpNotice } from "@/components/WakingUpNotice";
+import { BrandMark } from "@/components/BrandMark";
+import { WarmUpPing } from "@/components/WarmUpPing";
+import { PromptForm } from "@/components/PromptForm";
+import { EmptyState, LoadingState, WakingState, ErrorState } from "@/components/ResultStates";
 import { SchemaDiagram } from "@/components/SchemaDiagram";
 import { SqlHighlight } from "@/components/SqlHighlight";
 import type { SQLSchemaResponse, Dialect } from "@/types/schema";
@@ -30,12 +33,6 @@ interface HistoryEntry {
 }
 
 const LS_KEY = "schemaai_history";
-
-const SAMPLE_PROMPTS = [
-  "E-commerce store with orders, items, inventory tracks and users.",
-  "Blog site with users, posts, categories, comments and tags.",
-  "Project board like Trello with boards, lists, cards, and member assignments.",
-];
 
 function readHistory(): HistoryEntry[] {
   try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; }
@@ -173,11 +170,10 @@ export default function GeneratorPage() {
 
   useEffect(() => {
     setHistory(readHistory());
-    fetch("/api/health").catch(() => { });
   }, []);
 
-  async function handleGenerate(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleGenerate(e?: React.FormEvent) {
+    e?.preventDefault();
     if (!description.trim()) return;
 
     setLoading(true);
@@ -242,155 +238,77 @@ export default function GeneratorPage() {
   }
 
   const selectedTable = response?.tables?.[selectedTableIndex];
+  const fkCount = response ? response.tables.reduce((n, t) => n + t.columns.filter(c => c.references).length, 0) : 0;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F4F5F6] text-neutral-800 selection:bg-neutral-200 selection:text-black">
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e5e5_1px,transparent_1px),linear-gradient(to_bottom,#e5e5e5_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-50" />
+    <div className="h-screen flex flex-col bg-background text-ink overflow-hidden">
+      <WarmUpPing />
 
-      <header className="border-b border-[#e5e5e5] bg-[#F4F5F6]/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-neutral-500 hover:text-[#111111] transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
-            </Link>
-            <span className="w-5 h-5 rounded bg-[#111111] flex items-center justify-center font-bold text-white text-xs tracking-tighter">S</span>
-            <span className="font-display font-semibold tracking-tight text-[#111111] text-sm">SchemaAI</span>
+      <header className="flex-none flex items-center justify-between px-6 py-3 bg-surface border-b border-[rgba(16,20,19,0.08)]">
+        <div className="flex items-center gap-3.5">
+          <Link href="/" aria-label="Back to home" className="w-[30px] h-[30px] rounded-md flex items-center justify-center text-ink-soft hover:bg-[rgba(16,20,19,0.06)] transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+          </Link>
+          <div className="flex items-center gap-[9px]">
+            <span className="text-accent"><BrandMark size={24} /></span>
+            <span className="text-[15px] font-semibold tracking-[-0.01em]">EasySchema</span>
+            <span className="font-mono text-[10.5px] text-ink-muted border border-[rgba(16,20,19,0.1)] px-[7px] py-0.5 rounded-[5px]">generator</span>
           </div>
-
-          <button
-            id="history-toggle"
-            onClick={() => setHistoryOpen(o => !o)}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md border transition-all cursor-pointer ${historyOpen ? "bg-[#111111] text-white border-[#111111]" : "bg-white text-neutral-600 border-[#e5e5e5] hover:bg-neutral-50 hover:text-black"}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-            History
-            {history.length > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${historyOpen ? "bg-white/20 text-white" : "bg-[#5E6AD2]/10 text-[#5E6AD2]"}`}>
-                {history.length}
-              </span>
-            )}
-          </button>
         </div>
+
+        <button
+          onClick={() => setHistoryOpen(o => !o)}
+          className={`flex items-center gap-2 font-mono text-xs px-3 py-1.5 rounded-[7px] border transition-colors cursor-pointer ${historyOpen ? "bg-ink text-background border-ink" : "bg-surface text-ink-soft border-[rgba(16,20,19,0.12)] hover:bg-[rgba(16,20,19,0.03)]"}`}
+        >
+          history
+          {history.length > 0 && (
+            <span className={`text-[10.5px] px-1.5 py-px rounded-full ${historyOpen ? "bg-white text-ink" : "bg-accent text-white"}`}>
+              {history.length}
+            </span>
+          )}
+        </button>
       </header>
 
-      <HistoryDrawer
-        open={historyOpen}
-        history={history}
-        activeId={activeId}
-        onLoad={loadEntry}
-        onDelete={deleteEntry}
-        onClear={() => { writeHistory([]); setHistory([]); setActiveId(null); }}
-        onClose={() => setHistoryOpen(false)}
+      <PromptForm
+        description={description}
+        setDescription={setDescription}
+        dialect={dialect}
+        setDialect={setDialect}
+        loading={loading}
+        onSubmit={handleGenerate}
       />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-8 flex flex-col gap-6 relative z-10">
-        <section className="flex flex-col gap-4 border border-[#e5e5e5] bg-white rounded-lg p-5 shadow-sm">
-          <form onSubmit={handleGenerate} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="prompt-input" className="font-display text-xs font-semibold tracking-tight text-neutral-700">
-                Design Schema Prompts
-              </label>
-              <textarea
-                id="prompt-input"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe your schema structure, tables, and relationships in plain English..."
-                className="w-full h-24 bg-[#F4F5F6] border border-[#e5e5e5] focus:border-[#5E6AD2]/50 focus:ring-1 focus:ring-[#5E6AD2]/30 outline-none rounded-lg p-3.5 text-sm font-sans text-neutral-800 placeholder-neutral-400 transition-all resize-none"
-                disabled={loading}
-              />
-              <WakingUpNotice />
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="flex flex-wrap gap-2">
-                {SAMPLE_PROMPTS.map((prompt, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setDescription(prompt)}
-                    className="text-xs text-neutral-600 hover:text-black bg-white border border-[#e5e5e5] hover:bg-neutral-50 px-3 py-1.5 rounded-md transition-colors cursor-pointer"
-                    disabled={loading}
-                  >
-                    Preset {i + 1}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <select
-                  value={dialect}
-                  onChange={(e) => setDialect(e.target.value as Dialect)}
-                  disabled={loading}
-                  aria-label="SQL dialect"
-                  className="px-3 py-2 text-sm font-medium text-neutral-700 bg-white border border-[#e5e5e5] hover:bg-neutral-50 rounded-md transition-colors cursor-pointer outline-none focus:border-[#5E6AD2]/50 focus:ring-1 focus:ring-[#5E6AD2]/30 disabled:text-neutral-400"
-                >
-                  {DIALECTS.map((d) => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
-                  ))}
-                </select>
-
-                <button
-                  type="submit"
-                  disabled={loading || !description.trim()}
-                  className="flex-1 sm:w-auto px-5 py-2 text-sm font-semibold text-white bg-[#111111] hover:bg-[#222222] disabled:bg-neutral-200 disabled:text-neutral-400 transition-colors rounded-md tracking-tight cursor-pointer"
-                >
-                  {loading ? "Compiling..." : "Generate SQL"}
-                </button>
-              </div>
-            </div>
-          </form>
-        </section>
-
-        {loading && slowWake && <WakingUpNotice active />}
-
-        {error && (
-          <div className="border border-red-200 bg-red-50 text-red-700 rounded-lg p-4 text-xs font-sans flex items-start gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-            <div className="flex flex-col gap-1">
-              <span className="font-semibold uppercase tracking-wider">Compilation Error</span>
-              <span>{error}</span>
-            </div>
-          </div>
-        )}
-
-        {!response && !loading && !error && (
-          <div className="border border-dashed border-[#e5e5e5] bg-white rounded-lg p-16 flex flex-col items-center justify-center text-center gap-4 shadow-sm">
-            <div className="w-10 h-10 rounded-lg bg-[#F4F5F6] border border-[#e5e5e5] flex items-center justify-center text-neutral-400">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-            </div>
-            <h3 className="font-display text-sm font-semibold text-neutral-700 uppercase tracking-tight">Console Empty</h3>
-            <p className="font-sans text-xs text-neutral-400 max-w-sm leading-relaxed">
-              Input database specifications above to generate schemas and SQL inserts.
-            </p>
-          </div>
-        )}
-
-        {response && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex gap-1 border border-[#e5e5e5] bg-white rounded-lg p-1 w-fit shadow-sm">
-                <button
-                  onClick={() => setView("tables")}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${view === "tables" ? "bg-[#111111] text-white" : "text-neutral-500 hover:text-black"}`}
-                >
-                  Tables
-                </button>
-                <button
-                  onClick={() => setView("diagram")}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${view === "diagram" ? "bg-[#111111] text-white" : "text-neutral-500 hover:text-black"}`}
-                >
-                  Diagram
-                </button>
-              </div>
-
+      {response ? (
+        <>
+          <div className="flex-none flex items-center justify-between px-6 py-3">
+            <div className="flex bg-surface border border-[rgba(16,20,19,0.12)] rounded-lg p-[3px]">
               <button
-                onClick={() => downloadText("schema.sql", buildFullSchemaSql(response))}
-                className="text-xs font-medium text-neutral-600 hover:text-black bg-white border border-[#e5e5e5] hover:bg-neutral-50 px-3 py-1.5 rounded-md transition-colors cursor-pointer"
+                onClick={() => setView("tables")}
+                className={`font-mono text-xs px-4 py-[5px] rounded-md transition-colors cursor-pointer ${view === "tables" ? "bg-ink text-background" : "text-ink-soft hover:text-ink"}`}
               >
-                Download all
+                tables
+              </button>
+              <button
+                onClick={() => setView("diagram")}
+                className={`font-mono text-xs px-4 py-[5px] rounded-md transition-colors cursor-pointer ${view === "diagram" ? "bg-ink text-background" : "text-ink-soft hover:text-ink"}`}
+              >
+                diagram
               </button>
             </div>
+            <div className="flex items-center gap-2.5">
+              <span className="font-mono text-[11px] text-accent hidden sm:inline">
+                validated · {response.tables.length} tables · {fkCount} FKs
+              </span>
+              <button
+                onClick={() => downloadText("schema.sql", buildFullSchemaSql(response))}
+                className="flex items-center gap-[7px] font-mono text-xs text-background bg-accent px-3.5 py-[7px] rounded-[7px] hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                ↓ schema.sql
+              </button>
+            </div>
+          </div>
 
+          <div className="flex-1 min-h-0 overflow-auto px-6 pb-5">
             {view === "diagram" ? (
               <SchemaDiagram tables={response.tables} />
             ) : (
@@ -461,8 +379,32 @@ export default function GeneratorPage() {
               </div>
             )}
           </div>
-        )}
-      </main>
+        </>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-auto px-6 pt-5">
+          <div className="max-w-[560px] mx-auto">
+            {loading && slowWake ? (
+              <WakingState />
+            ) : loading ? (
+              <LoadingState />
+            ) : error ? (
+              <ErrorState message={error} onRetry={() => handleGenerate()} />
+            ) : (
+              <EmptyState />
+            )}
+          </div>
+        </div>
+      )}
+
+      <HistoryDrawer
+        open={historyOpen}
+        history={history}
+        activeId={activeId}
+        onLoad={loadEntry}
+        onDelete={deleteEntry}
+        onClear={() => { writeHistory([]); setHistory([]); setActiveId(null); }}
+        onClose={() => setHistoryOpen(false)}
+      />
     </div>
   );
 }
