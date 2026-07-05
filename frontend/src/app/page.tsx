@@ -16,7 +16,6 @@ export default function LandingPage() {
           <span className="text-base font-semibold tracking-[-0.01em]">EasySchema</span>
         </div>
         <div className="flex items-center gap-[22px]">
-          <span className="font-mono text-xs text-ink-soft">docs</span>
           <a href={REPO_URL} target="_blank" rel="noreferrer" className="font-mono text-xs text-ink-soft hover:text-ink transition-colors">github</a>
           <Link href="/generator" className="text-[13.5px] font-medium text-background bg-accent px-4 py-[7px] rounded-[7px] hover:opacity-90 transition-opacity">
             Launch app →
@@ -220,8 +219,7 @@ export default function LandingPage() {
       <footer className="flex items-center justify-between px-10 py-[22px] border-t border-[rgba(16,20,19,0.08)] bg-surface">
         <span className="font-mono text-[11.5px] text-ink-muted">© 2026 EasySchema</span>
         <div className="flex gap-5">
-          <span className="font-mono text-[11.5px] text-ink-soft">documentation</span>
-          <a href={REPO_URL} target="_blank" rel="noreferrer" className="font-mono text-[11.5px] text-ink-soft hover:text-ink transition-colors">repository</a>
+          <a href={REPO_URL} target="_blank" rel="noreferrer" className="font-mono text-[11.5px] text-ink-soft hover:text-ink transition-colors">github</a>
         </div>
       </footer>
     </div>
