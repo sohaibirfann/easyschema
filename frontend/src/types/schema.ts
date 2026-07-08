@@ -20,19 +20,28 @@ export interface TableSchema {
 
 export interface SQLSchemaResponse {
   tables: TableSchema[];
+  orm_schema: string | null;
 }
 
 export type Dialect = "postgres" | "mysql" | "sqlite";
+export type OrmTarget = "none" | "prisma" | "sqlalchemy";
 
 export interface HistoryEntry {
   id: number;
   prompt: string;
   response: SQLSchemaResponse;
   dialect: Dialect;
+  orm: OrmTarget;
 }
 
 export const DIALECTS: { value: Dialect; label: string }[] = [
   { value: "postgres", label: "PostgreSQL" },
   { value: "mysql", label: "MySQL" },
   { value: "sqlite", label: "SQLite" },
+];
+
+export const ORM_TARGETS: { value: OrmTarget; label: string }[] = [
+  { value: "none", label: "No ORM" },
+  { value: "prisma", label: "Prisma" },
+  { value: "sqlalchemy", label: "SQLAlchemy" },
 ];

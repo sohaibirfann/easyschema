@@ -51,7 +51,8 @@ easyschema/
 │   ├── models/schema.py           # Pydantic models (columns, FK references, dialect)
 │   ├── services/
 │   │   ├── ai_service.py          # Async Groq caller, retries transient failures
-│   │   └── sql_generator.py       # Validation + dialect-aware DDL/DML compiler
+│   │   ├── sql_generator.py       # Validation + dialect-aware DDL/DML compiler
+│   │   └── orm_generator.py       # Prisma / SQLAlchemy model renderers
 │   ├── requirements.txt
 │   └── test_service.py            # pytest suite
 │
@@ -130,6 +131,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. The dev pro
 
 - **Natural language to SQL** — Describe your schema in plain English, get valid `CREATE TABLE` and `INSERT` statements
 - **Multi-dialect compiler** — Generate the same schema as PostgreSQL, MySQL, or SQLite; dialect-specific syntax is rendered deterministically, not left to the LLM
+- **ORM export** — Optionally emit the same schema as a Prisma `schema.prisma` or SQLAlchemy models file, with foreign keys rendered as proper bidirectional relations (including self-references and multiple FKs to one table)
 - **Live ER diagram** — Every generated schema renders as an entity-relationship diagram, with foreign keys drawn as connector lines between the referencing and referenced columns
 - **Pydantic-enforced output** — The AI response is validated against a strict schema, with an additional guard rejecting duplicate table/column names before any SQL is generated
 - **Resilient to API hiccups** — Transient Groq failures (rate limits, 5xx) are retried automatically with backoff

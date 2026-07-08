@@ -16,7 +16,7 @@ function ConstraintTags({ col }: { col: Column }) {
   );
 }
 
-function SqlPanel({ filename, downloadName, sql, copyKey, copySuccess, onCopy, wrap }: {
+export function SqlPanel({ filename, downloadName, sql, copyKey, copySuccess, onCopy, wrap }: {
   filename: string;
   downloadName: string;
   sql: string;

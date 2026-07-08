@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from models.schema import Column, Reference, SQLSchemaResponse, TableSchema
 from services.ai_service import generate_schema_from_ai
 from services.sql_generator import populate_sql_statements
+from services.orm_generator import generate_orm_schema
 
 class MockResponse:
     def __init__(self, status_code, json_data=None, text=""):
@@ -97,6 +98,69 @@ def test_populate_rejects_dangling_fk_reference():
     except HTTPException as e:
         assert e.status_code == 422
         assert "userss" in e.detail
+
+def two_related_tables():
+    return [
+        TableSchema(table_name="users", columns=[
+            Column(name="id", type="INTEGER", constraints=["PRIMARY KEY"], auto_increment=True),
+        ]),
+        TableSchema(table_name="orders", columns=[
+            Column(name="id", type="INTEGER", constraints=["PRIMARY KEY"], auto_increment=True),
+            Column(name="user_id", type="INTEGER", constraints=["NOT NULL"], references=Reference(table="users", column="id")),
+            Column(name="created_at", type="TIMESTAMP", constraints=["DEFAULT now()"]),
+        ]),
+    ]
+
+def test_orm_none_returns_none():
+    assert generate_orm_schema(two_related_tables(), "none") is None
+
+def test_prisma_renders_forward_and_back_relations():
+    prisma = generate_orm_schema(two_related_tables(), "prisma")
+    assert "model users" in prisma
+    assert "model orders" in prisma
+    assert "user_id Int" in prisma
+    assert "user users @relation(fields: [user_id], references: [id])" in prisma
+    assert "orders orders[]" in prisma
+    assert "@default(now())" in prisma
+
+def test_sqlalchemy_renders_forward_and_back_relations():
+    models = generate_orm_schema(two_related_tables(), "sqlalchemy")
+    assert "class Users(Base):" in models
+    assert "class Orders(Base):" in models
+    assert "ForeignKey('users.id')" in models
+    assert 'relationship("Users", back_populates="orders")' in models
+    assert 'relationship("Orders", back_populates="user")' in models
+    assert "server_default=func.now()" in models
+
+def test_prisma_handles_self_reference():
+    tables = [TableSchema(table_name="employees", columns=[
+        Column(name="id", type="INTEGER", constraints=["PRIMARY KEY"], auto_increment=True),
+        Column(name="manager_id", type="INTEGER", references=Reference(table="employees", column="id")),
+    ])]
+    prisma = generate_orm_schema(tables, "prisma")
+    assert 'manager employees? @relation("employees_manager_id", fields: [manager_id], references: [id])' in prisma
+    assert 'employees employees[] @relation("employees_manager_id")' in prisma
+    models = generate_orm_schema(tables, "sqlalchemy")
+    assert 'remote_side="Employees.id"' in models
+
+def test_orm_handles_two_fks_to_same_table():
+    tables = [
+        TableSchema(table_name="users", columns=[
+            Column(name="id", type="INTEGER", constraints=["PRIMARY KEY"], auto_increment=True),
+        ]),
+        TableSchema(table_name="messages", columns=[
+            Column(name="id", type="INTEGER", constraints=["PRIMARY KEY"], auto_increment=True),
+            Column(name="sender_id", type="INTEGER", constraints=["NOT NULL"], references=Reference(table="users", column="id")),
+            Column(name="receiver_id", type="INTEGER", constraints=["NOT NULL"], references=Reference(table="users", column="id")),
+        ]),
+    ]
+    prisma = generate_orm_schema(tables, "prisma")
+    assert 'sender users @relation("messages_sender_id", fields: [sender_id], references: [id])' in prisma
+    assert 'messages_via_sender_id messages[] @relation("messages_sender_id")' in prisma
+    assert 'messages_via_receiver_id messages[] @relation("messages_receiver_id")' in prisma
+    models = generate_orm_schema(tables, "sqlalchemy")
+    assert 'sender = relationship("Users", back_populates="messages_via_sender_id", foreign_keys="[Messages.sender_id]")' in models
+    assert 'messages_via_sender_id = relationship("Messages", back_populates="sender", foreign_keys="[Messages.sender_id]")' in models
 
 def test_autoincrement_renders_per_dialect():
     def schema():

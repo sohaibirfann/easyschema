@@ -7,10 +7,15 @@ import { WarmUpPing } from "@/components/WarmUpPing";
 import { PromptForm } from "@/components/PromptForm";
 import { EmptyState, LoadingState, WakingState, ErrorState } from "@/components/ResultStates";
 import { SchemaDiagram } from "@/components/SchemaDiagram";
-import { TablesView } from "@/components/TablesView";
+import { TablesView, SqlPanel } from "@/components/TablesView";
 import { HistoryDrawer } from "@/components/HistoryDrawer";
 import { downloadText } from "@/lib/download";
-import type { SQLSchemaResponse, Dialect, HistoryEntry } from "@/types/schema";
+import type { SQLSchemaResponse, Dialect, OrmTarget, HistoryEntry } from "@/types/schema";
+
+const ORM_FILENAME: Record<Exclude<OrmTarget, "none">, string> = {
+  prisma: "schema.prisma",
+  sqlalchemy: "models.py",
+};
 
 function buildFullSchemaSql(response: SQLSchemaResponse): string {
   const ddl = response.tables.map(t => t.create_table_sql).filter(Boolean).join("\n\n");
@@ -40,6 +45,8 @@ export default function GeneratorPage() {
   const [slowWake, setSlowWake] = useState(false);
   const [view, setView] = useState<"tables" | "diagram">("tables");
   const [dialect, setDialect] = useState<Dialect>("postgres");
+  const [ormTarget, setOrmTarget] = useState<OrmTarget>("none");
+  const [responseOrm, setResponseOrm] = useState<OrmTarget>("none");
 
   useEffect(() => {
     setHistory(readHistory());
@@ -61,7 +68,7 @@ export default function GeneratorPage() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description, dialect }),
+        body: JSON.stringify({ description, dialect, orm: ormTarget }),
       });
 
       if (!res.ok) {
@@ -71,8 +78,9 @@ export default function GeneratorPage() {
 
       const data: SQLSchemaResponse = await res.json();
       setResponse(data);
+      setResponseOrm(ormTarget);
 
-      const entry: HistoryEntry = { id: Date.now(), prompt: description.trim(), response: data, dialect };
+      const entry: HistoryEntry = { id: Date.now(), prompt: description.trim(), response: data, dialect, orm: ormTarget };
       const next = [entry, ...history].slice(0, 20);
       writeHistory(next);
       setHistory(next);
@@ -90,6 +98,8 @@ export default function GeneratorPage() {
     setDescription(entry.prompt);
     setResponse(entry.response);
     setDialect(entry.dialect ?? "postgres");
+    setOrmTarget(entry.orm ?? "none");
+    setResponseOrm(entry.orm ?? "none");
     setSelectedTableIndex(0);
     setError(null);
     setActiveId(entry.id);
@@ -146,6 +156,8 @@ export default function GeneratorPage() {
         setDescription={setDescription}
         dialect={dialect}
         setDialect={setDialect}
+        ormTarget={ormTarget}
+        setOrmTarget={setOrmTarget}
         loading={loading}
         onSubmit={handleGenerate}
       />
@@ -191,6 +203,19 @@ export default function GeneratorPage() {
                 copySuccess={copySuccess}
                 onCopy={handleCopy}
               />
+            )}
+
+            {response.orm_schema && (
+              <div className="mt-3.5">
+                <SqlPanel
+                  filename={ORM_FILENAME[responseOrm as Exclude<OrmTarget, "none">]}
+                  downloadName={ORM_FILENAME[responseOrm as Exclude<OrmTarget, "none">]}
+                  sql={response.orm_schema}
+                  copyKey="orm"
+                  copySuccess={copySuccess}
+                  onCopy={handleCopy}
+                />
+              </div>
             )}
           </div>
         </>

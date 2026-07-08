@@ -21,7 +21,9 @@ class TableSchema(BaseModel):
 
 class SQLSchemaResponse(BaseModel):
     tables: list[TableSchema] = Field(description="Tables generated from user description")
+    orm_schema: str | None = Field(default=None, description="Generated ORM model definitions, if an ORM target was requested")
 
 class GenerateRequest(BaseModel):
     description: str = Field(description="Natural language description of the requested database schema")
     dialect: Literal["postgres", "mysql", "sqlite"] = Field(default="postgres", description="Target SQL dialect")
+    orm: Literal["none", "prisma", "sqlalchemy"] = Field(default="none", description="Optional ORM target to also generate model definitions for")

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from models.schema import GenerateRequest, SQLSchemaResponse
 from services.ai_service import generate_schema_from_ai
 from services.sql_generator import populate_sql_statements
+from services.orm_generator import generate_orm_schema
 
 router = APIRouter(prefix="/api", tags=["schema"])
 
@@ -32,4 +33,6 @@ async def health() -> dict[str, str]:
 @router.post("/generate")
 async def generate_schema(payload: GenerateRequest, _: RateLimitDep) -> SQLSchemaResponse:
     response = await generate_schema_from_ai(payload.description)
-    return populate_sql_statements(response, payload.dialect)
+    response = populate_sql_statements(response, payload.dialect)
+    response.orm_schema = generate_orm_schema(response.tables, payload.orm)
+    return response

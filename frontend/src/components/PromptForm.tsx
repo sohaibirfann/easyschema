@@ -1,5 +1,5 @@
-import type { Dialect } from "@/types/schema";
-import { DIALECTS } from "@/types/schema";
+import type { Dialect, OrmTarget } from "@/types/schema";
+import { DIALECTS, ORM_TARGETS } from "@/types/schema";
 
 const PRESETS = [
   { label: "e-commerce", prompt: "E-commerce store with orders, items, inventory tracks and users." },
@@ -7,11 +7,13 @@ const PRESETS = [
   { label: "kanban board", prompt: "Project board like Trello with boards, lists, cards, and member assignments." },
 ];
 
-export function PromptForm({ description, setDescription, dialect, setDialect, loading, onSubmit }: {
+export function PromptForm({ description, setDescription, dialect, setDialect, ormTarget, setOrmTarget, loading, onSubmit }: {
   description: string;
   setDescription: (v: string) => void;
   dialect: Dialect;
   setDialect: (d: Dialect) => void;
+  ormTarget: OrmTarget;
+  setOrmTarget: (o: OrmTarget) => void;
   loading: boolean;
   onSubmit: (e: React.FormEvent) => void;
 }) {
@@ -35,6 +37,17 @@ export function PromptForm({ description, setDescription, dialect, setDialect, l
           >
             {DIALECTS.map((d) => (
               <option key={d.value} value={d.value}>{d.label}</option>
+            ))}
+          </select>
+          <select
+            value={ormTarget}
+            onChange={(e) => setOrmTarget(e.target.value as OrmTarget)}
+            disabled={loading}
+            aria-label="ORM target"
+            className="border border-[rgba(16,20,19,0.14)] rounded-[9px] px-3.5 bg-surface font-mono text-xs text-ink outline-none focus:border-accent/50 cursor-pointer disabled:text-ink-muted transition-colors hidden md:block"
+          >
+            {ORM_TARGETS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
           <button
