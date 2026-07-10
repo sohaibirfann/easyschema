@@ -27,6 +27,7 @@ def check_rate_limit(request: Request) -> None:
 RateLimitDep = Annotated[None, Depends(check_rate_limit)]
 
 @router.get("/health")
+@router.head("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
