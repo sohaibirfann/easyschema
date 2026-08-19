@@ -86,7 +86,7 @@ easyschema/
 
 1. You type a schema description in natural language (e.g. *"E-commerce store with orders, items, inventory and users"*) and pick a target SQL dialect
 2. The frontend sends it to `POST /api/generate`
-3. The backend calls Groq's `llama-3.3-70b-versatile` model with strict JSON mode, enforcing the Pydantic schema — including foreign-key references, auto-increment flags, and realistic seed rows
+3. The backend calls Groq's `openai/gpt-oss-120b` model with JSON mode; the response is validated against the Pydantic schema, including foreign-key references, auto-increment flags, and realistic seed rows
 4. The backend rejects malformed results (duplicate table/column names) before compiling the response
 5. Dialect-specific syntax (`SERIAL` vs `AUTO_INCREMENT` vs `INTEGER PRIMARY KEY AUTOINCREMENT`, etc.) is generated **deterministically** in `sql_generator.py` — the LLM's output stays dialect-neutral, so getting the SQL right doesn't depend on the model getting dialect trivia right
 6. The frontend renders columns in a metadata table, SQL in syntax-highlighted copyable/downloadable panels, and foreign keys as a live ER diagram with drawn connector lines
